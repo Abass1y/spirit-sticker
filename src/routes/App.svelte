@@ -10,14 +10,14 @@
     let selectedSticker = null;
 
     const stickers = [
-        { id: 1, emoji: "🔥", name: "Fire", price: 500, rarity: "common" },
-        { id: 2, emoji: "💖", name: "Love", price: 1000, rarity: "rare" },
-        { id: 3, emoji: "🎉", name: "Party", price: 750, rarity: "uncommon" },
-        { id: 4, emoji: "👻", name: "Ghost", price: 1500, rarity: "epic" },
-        { id: 5, emoji: "⭐", name: "Star", price: 800, rarity: "uncommon" },
-        { id: 6, emoji: "🌙", name: "Moon", price: 1200, rarity: "rare" },
-        { id: 7, emoji: "🎁", name: "Gift", price: 600, rarity: "common" },
-        { id: 8, emoji: "💎", name: "Diamond", price: 2000, rarity: "legendary" },
+        { id: 1, emoji: "�", name: "It Works!", price: 500, rarity: "common" },
+        { id: 2, emoji: "🤯", name: "CSS is Broken", price: 600, rarity: "common" },
+        { id: 3, emoji: "😤", name: "Why No Work", price: 750, rarity: "uncommon" },
+        { id: 4, emoji: "🤔", name: "Stack Overflow?", price: 1000, rarity: "uncommon" },
+        { id: 5, emoji: "😪", name: "3AM Deploy", price: 700, rarity: "rare" },
+        { id: 6, emoji: "🤪", name: "Debug Mode ON", price: 1200, rarity: "rare" },
+        { id: 7, emoji: "☕", name: "Need Coffee", price: 650, rarity: "common" },
+        { id: 8, emoji: "🎉", name: "FINALLY WORKS", price: 2000, rarity: "legendary" },
     ];
 
     /** @type {Record<number, number>} */
