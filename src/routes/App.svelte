@@ -92,6 +92,17 @@
         });
     }
 
+    function handleTestLogin() {
+        isLoading = true;
+        setTimeout(() => {
+            token = "test_token_" + Date.now();
+            isLoading = false;
+            getMy().alert({
+                content: "Test Login Successful! 🎉",
+            });
+        }, 500);
+    }
+
     function handleScan() {
         getMy().scan({
             type: "qr",
@@ -174,6 +185,9 @@
                     {:else}
                         Login / Authenticate
                     {/if}
+                </button>
+                <button on:click={handleTestLogin} disabled={isLoading} class="btn btn-secondary">
+                    Test Login (Skip API)
                 </button>
             </div>
         {/if}
@@ -429,6 +443,16 @@
     }
     .btn-primary:hover {
         background-color: #1c1917;
+    }
+
+    .btn-secondary {
+        background-color: #64748b; /* slate-500 */
+        padding: 0.75rem 1.5rem;
+        font-size: 0.875rem;
+        margin-top: 0.75rem;
+    }
+    .btn-secondary:hover {
+        background-color: #475569;
     }
 
     .btn-action {
