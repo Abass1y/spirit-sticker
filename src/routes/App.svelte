@@ -6,6 +6,7 @@
     let friendID = "";
     let isLoading = false;
     let currentView = "shop"; // shop, collection, send
+    /** @type {any} */
     let selectedSticker = null;
 
     const stickers = [
@@ -19,6 +20,7 @@
         { id: 8, emoji: "💎", name: "Diamond", price: 2000, rarity: "legendary" },
     ];
 
+    /** @type {Record<number, number>} */
     let myStickers = {}; // { stickerId: count }
 
     function getMy() {
@@ -26,13 +28,13 @@
             return window.my;
         }
         return {
-            getAuthCode: ({ success }) =>
+            getAuthCode: (/** @type {any} */ { success }) =>
                 setTimeout(() => success && success({ authCode: "mock_auth_123" }), 500),
-            scan: ({ success }) =>
+            scan: (/** @type {any} */ { success }) =>
                 setTimeout(() => success && success({ code: "mock_friend_456" }), 500),
-            tradePay: ({ paymentUrl }) =>
+            tradePay: (/** @type {any} */ { paymentUrl }) =>
                 alert(`Opening Payment: ${paymentUrl}`),
-            alert: ({ content }) => alert(content),
+            alert: (/** @type {any} */ { content }) => alert(content),
         };
     }
 
@@ -45,7 +47,7 @@
         }, 500);
     }
 
-    function buyStickerWithPayment(sticker) {
+    function buyStickerWithPayment(/** @type {any} */ sticker) {
         if (!token) return;
         isLoading = true;
 
@@ -61,7 +63,7 @@
         }, 800);
     }
 
-    function sendSticker(sticker) {
+    function sendSticker(/** @type {any} */ sticker) {
         if (!token || !friendID || !myStickers[sticker.id]) return;
 
         isLoading = true;
@@ -77,7 +79,7 @@
         }, 800);
     }
 
-    function startSendFlow(sticker) {
+    function startSendFlow(/** @type {any} */ sticker) {
         selectedSticker = sticker;
         currentView = "send";
     }
@@ -87,7 +89,7 @@
             type: "qr",
             success: (res) => {
                 friendID = res.code;
-                getMy().alert({ title: "Friend scanned: " + res.code });
+                getMy().alert({ content: "Friend scanned: " + res.code });
             },
             fail: (err) => {
                 console.error("Scan error:", err);
@@ -716,9 +718,6 @@
         font-weight: 700;
         font-size: 1.25rem;
         line-height: 1.2;
-    }
-    .price-tag span {
-        color: #292524; /* stone-800 */
     }
 
     /* Animations */
