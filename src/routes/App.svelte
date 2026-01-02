@@ -2,12 +2,106 @@
     import { onMount } from "svelte";
 
     // State
-    let authCode = "";
     let token = "";
     let friendID = "";
-    let selectedSticker = "";
     let isLoading = false;
-    const stickers = ["🔥", "💖", "🎉", "👻"];
+    let currentView = "shop"; // shop, collection, send
+    let selectedSticker = null;
+
+    const stickers = [
+        { id: 1, emoji: "🔥", name: "Fire", price: 500, rarity: "common" },
+        { id: 2, emoji: "💖", name: "Love", price: 1000, rarity: "rare" },
+        { id: 3, emoji: "🎉", name: "Party", price: 750, rarity: "uncommon" },
+        { id: 4, emoji: "👻", name: "Ghost", price: 1500, rarity: "epic" },
+        { id: 5, emoji: "⭐", name: "Star", price: 800, rarity: "uncommon" },
+        { id: 6, emoji: "🌙", name: "Moon", price: 1200, rarity: "rare" },
+        { id: 7, emoji: "🎁", name: "Gift", price: 600, rarity: "common" },
+        { id: 8, emoji: "💎", name: "Diamond", price: 2000, rarity: "legendary" },
+    ];
+
+    let myStickers = {}; // { stickerId: count }
+
+    function getMy() {
+        if (typeof window !== "undefined" && window.my) {
+            return window.my;
+        }
+        return {
+            getAuthCode: ({ success }) =>
+                setTimeout(() => success && success({ authCode: "mock_auth_123" }), 500),
+            scan: ({ success }) =>
+                setTimeout(() => success && success({ code: "mock_friend_456" }), 500),
+            tradePay: ({ paymentUrl }) =>
+                alert(`Opening Payment: ${paymentUrl}`),
+            alert: ({ content }) => alert(content),
+        };
+    }
+
+    function handleTestLogin() {
+        isLoading = true;
+        setTimeout(() => {
+            token = "test_token_" + Date.now();
+            isLoading = false;
+            getMy().alert({ content: "Test Login Successful! 🎉" });
+        }, 500);
+    }
+
+    function buyStickerWithPayment(sticker) {
+        if (!token) return;
+        isLoading = true;
+
+        // Simulate payment API call
+        setTimeout(() => {
+            // Add sticker to collection
+            myStickers[sticker.id] = (myStickers[sticker.id] || 0) + 1;
+            myStickers = myStickers; // Trigger reactivity
+            isLoading = false;
+            getMy().alert({
+                content: `✅ Bought ${sticker.name}! ${sticker.emoji}`,
+            });
+        }, 800);
+    }
+
+    function sendSticker(sticker) {
+        if (!token || !friendID || !myStickers[sticker.id]) return;
+
+        isLoading = true;
+        setTimeout(() => {
+            myStickers[sticker.id]--;
+            myStickers = myStickers;
+            isLoading = false;
+            getMy().alert({
+                content: `🎉 Sent ${sticker.name} ${sticker.emoji} to ${friendID}!`,
+            });
+            friendID = "";
+            currentView = "collection";
+        }, 800);
+    }
+
+    function startSendFlow(sticker) {
+        selectedSticker = sticker;
+        currentView = "send";
+    }
+
+    function scanFriend() {
+        getMy().scan({
+            type: "qr",
+            success: (res) => {
+                friendID = res.code;
+                getMy().alert({ title: "Friend scanned: " + res.code });
+            },
+            fail: (err) => {
+                console.error("Scan error:", err);
+            },
+        });
+    }
+
+    function logout() {
+        token = "";
+        myStickers = {};
+        currentView = "shop";
+        selectedSticker = null;
+    }
+</script>
 
     // Safe access to SDK
     /**
@@ -170,89 +264,161 @@
 <div class="app-container">
     <!-- Header -->
     <header class="app-header">
-        <h1>Spirit Sticker</h1>
+        <h1>🎟️ Spirit Sticker Shop</h1>
+        {#if token}
+            <div class="header-nav">
+                <button 
+                    class="nav-btn {currentView === 'shop' ? 'active' : ''}"
+                    on:click={() => currentView = 'shop'}
+                >
+                    Shop
+                </button>
+                <button 
+                    class="nav-btn {currentView === 'collection' ? 'active' : ''}"
+                    on:click={() => currentView = 'collection'}
+                >
+                    My Collection ({Object.values(myStickers).reduce((a, b) => a + b, 0)})
+                </button>
+                <button class="nav-btn logout-btn" on:click={logout}>
+                    Logout
+                </button>
+            </div>
+        {/if}
     </header>
 
     <main class="main-content">
-        <!-- Step 1: Login -->
+        <!-- Login Screen -->
         {#if !token}
             <div class="card login-card animate-entry">
                 <div class="icon">✨</div>
-                <p class="subtitle">Connect to start sending stickers!</p>
-                <button on:click={handleLogin} disabled={isLoading} class="btn btn-primary">
+                <p class="subtitle">Welcome to Spirit Sticker Shop!</p>
+                <p style="font-size: 0.9rem; color: #57534e;">Buy and send unique stickers to your friends</p>
+                <button on:click={handleTestLogin} disabled={isLoading} class="btn btn-primary">
                     {#if isLoading}
                         <span class="spinner"></span> Logging in...
                     {:else}
-                        Login / Authenticate
+                        Start Shopping 🛍️
                     {/if}
                 </button>
-                <button on:click={handleTestLogin} disabled={isLoading} class="btn btn-secondary">
-                    Test Login (Skip API)
-                </button>
             </div>
         {/if}
 
-        <!-- Step 2: Select & Scan -->
-        {#if token && !friendID}
-            <div class="card">
-                <h2 class="section-title">Select a Sticker</h2>
-
-                <!-- Sticker Grid -->
-                <div class="sticker-grid">
-                    {#each stickers as sticker}
-                        <button
-                            on:click={() => selectSticker(sticker)}
-                            class="sticker-btn {selectedSticker === sticker
-                                ? 'selected'
-                                : ''}"
-                        >
-                            {sticker}
-                        </button>
+        <!-- Shop View -->
+        {#if token && currentView === 'shop'}
+            <div class="shop-view">
+                <h2 class="section-title">🎟️ Available Stickers</h2>
+                <div class="sticker-shop-grid">
+                    {#each stickers as sticker (sticker.id)}
+                        <div class="sticker-card">
+                            <div class="sticker-emoji">{sticker.emoji}</div>
+                            <h3 class="sticker-name">{sticker.name}</h3>
+                            <span class="rarity-badge {sticker.rarity}">
+                                {sticker.rarity}
+                            </span>
+                            <div class="sticker-price">{sticker.price} IQD</div>
+                            <button 
+                                on:click={() => buyStickerWithPayment(sticker)}
+                                disabled={isLoading}
+                                class="btn btn-buy"
+                            >
+                                {#if isLoading}
+                                    <span class="spinner"></span> Buying...
+                                {:else}
+                                    Buy Now
+                                {/if}
+                            </button>
+                        </div>
                     {/each}
                 </div>
-
-                <!-- Scan Button -->
-                <div class="action-area">
-                    <button
-                        on:click={handleScan}
-                        disabled={!selectedSticker}
-                        class="btn btn-action"
-                    >
-                        {#if !selectedSticker}
-                            <span>Select a Sticker First</span>
-                        {:else}
-                            <span>Scan Friend QR</span>
-                            <span>📸</span>
-                        {/if}
-                    </button>
-                </div>
             </div>
         {/if}
 
-        <!-- Step 3: Payment -->
-        {#if friendID}
-            <div class="card payment-card">
-                <div class="info-group">
-                    <span class="label">Sending To</span>
-                    <div class="value">{friendID}</div>
+        <!-- Collection View -->
+        {#if token && currentView === 'collection'}
+            <div class="collection-view">
+                <h2 class="section-title">📦 Your Collection</h2>
+                {#if Object.keys(myStickers).length === 0}
+                    <div class="empty-state">
+                        <p>You don't have any stickers yet!</p>
+                        <button 
+                            class="btn btn-primary"
+                            on:click={() => currentView = 'shop'}
+                        >
+                            Go to Shop 🛍️
+                        </button>
+                    </div>
+                {:else}
+                    <div class="collection-grid">
+                        {#each stickers as sticker (sticker.id)}
+                            {#if myStickers[sticker.id]}
+                                <div class="collection-card">
+                                    <div class="sticker-emoji">{sticker.emoji}</div>
+                                    <h3 class="sticker-name">{sticker.name}</h3>
+                                    <div class="sticker-count">×{myStickers[sticker.id]}</div>
+                                    <button 
+                                        on:click={() => startSendFlow(sticker)}
+                                        class="btn btn-send"
+                                    >
+                                        Send 🎁
+                                    </button>
+                                </div>
+                            {/if}
+                        {/each}
+                    </div>
+                {/if}
+            </div>
+        {/if}
+
+        <!-- Send Sticker View -->
+        {#if token && currentView === 'send' && selectedSticker}
+            <div class="card send-card animate-entry">
+                <button 
+                    class="btn-back"
+                    on:click={() => currentView = 'collection'}
+                >
+                    ← Back
+                </button>
+                
+                <h2 class="section-title">Send {selectedSticker.name}</h2>
+                
+                <div class="send-preview">
+                    <div class="sticker-emoji">{selectedSticker.emoji}</div>
+                    <p>×{myStickers[selectedSticker.id]}</p>
                 </div>
 
-                <div class="summary">
-                    <div class="sticker-preview animate-bounce">
-                        {selectedSticker}
+                {#if !friendID}
+                    <p class="subtitle">Scan your friend's QR code</p>
+                    <button 
+                        on:click={scanFriend}
+                        class="btn btn-primary"
+                    >
+                        📸 Scan QR Code
+                    </button>
+                {:else}
+                    <div class="info-group">
+                        <span class="label">Sending to</span>
+                        <div class="value">{friendID}</div>
                     </div>
-                    <div class="price-tag">
-                        for <br /> <span>1k</span>
-                    </div>
-                </div>
-
-                <button on:click={handlePay} class="btn btn-success">
-                    Pay 1,000 IQD
-                </button>
-
-                <button class="btn-link" on:click={() => (friendID = "")}>
-                    Cancel & Scan Again
-                </button>
+                    
+                    <button 
+                        on:click={() => sendSticker(selectedSticker)}
+                        disabled={isLoading}
+                        class="btn btn-success"
+                    >
+                        {#if isLoading}
+                            <span class="spinner"></span> Sending...
+                        {:else}
+                            Send {selectedSticker.emoji}
+                        {/if}
+                    </button>
+                    
+                    <button 
+                        class="btn-link"
+                        on:click={() => friendID = ''}
+                    >
+                        Scan Different QR
+                    </button>
+                {/if}
             </div>
         {/if}
     </main>
@@ -286,7 +452,39 @@
         font-weight: 700;
         text-align: center;
         letter-spacing: 0.05em;
-        margin: 0;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .header-nav {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        margin-top: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .nav-btn {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .nav-btn.active {
+        background-color: #f97316; /* orange-500 */
+    }
+
+    .logout-btn {
+        margin-left: auto;
     }
 
     .main-content {
@@ -369,7 +567,173 @@
         max-width: 100%;
     }
 
-    /* Sticker Grid */
+    /* Sticker Cards - Shop & Collection */
+    .sticker-shop-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+        width: 100%;
+    }
+
+    .sticker-card,
+    .collection-card {
+        background-color: white;
+        border: 2px solid #e7e5e4;
+        border-radius: 1rem;
+        padding: 1rem;
+        text-align: center;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .sticker-card:hover,
+    .collection-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.1);
+        border-color: #f97316;
+    }
+
+    .sticker-emoji {
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .sticker-name {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #292524;
+        margin: 0.5rem 0;
+    }
+
+    .rarity-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 0.75rem;
+    }
+
+    .rarity-badge.common {
+        background-color: #d1d5db;
+        color: #374151;
+    }
+
+    .rarity-badge.uncommon {
+        background-color: #bbf7d0;
+        color: #065f46;
+    }
+
+    .rarity-badge.rare {
+        background-color: #bfdbfe;
+        color: #1e40af;
+    }
+
+    .rarity-badge.epic {
+        background-color: #d8b4fe;
+        color: #581c87;
+    }
+
+    .rarity-badge.legendary {
+        background-color: #fcd34d;
+        color: #92400e;
+    }
+
+    .sticker-price {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #f97316;
+        margin-bottom: 0.75rem;
+    }
+
+    .sticker-count {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #059669;
+        margin-bottom: 0.75rem;
+    }
+
+    .btn-buy,
+    .btn-send {
+        background-color: #f97316; /* orange */
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+        width: 100%;
+    }
+
+    .btn-buy:hover,
+    .btn-send:hover {
+        background-color: #ea580c;
+    }
+
+    .collection-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 1rem;
+        width: 100%;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #57534e;
+    }
+
+    .empty-state p {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+    }
+
+    .shop-view,
+    .collection-view {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .send-card {
+        width: 100%;
+        max-width: 480px;
+    }
+
+    .btn-back {
+        align-self: flex-start;
+        background: none;
+        border: none;
+        color: #f97316;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 0;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+    }
+
+    .btn-back:hover {
+        color: #ea580c;
+    }
+
+    .send-preview {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .send-preview .sticker-emoji {
+        font-size: 4rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .send-preview p {
+        font-size: 1.5rem;
+        color: #f97316;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    /* Original Sticker Grid */
     .sticker-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
