@@ -6,6 +6,7 @@
     let token = "";
     let friendID = "";
     let selectedSticker = "";
+    let isLoading = false;
     const stickers = ["🔥", "💖", "🎉", "👻"];
 
     // Safe access to SDK
@@ -37,6 +38,7 @@
     }
 
     async function handleLogin() {
+        isLoading = true;
         getMy().getAuthCode({
             scopes: ["auth_base", "USER_ID"],
             success: async (/** @type {{authCode: string}} */ res) => {
@@ -79,10 +81,13 @@
                     getMy().alert({
                         content: "Error: " + errorDetails,
                     });
+                } finally {
+                    isLoading = false;
                 }
             },
             fail: (/** @type {any} */ err) => {
                 console.error("SDK Auth Error:", err);
+                isLoading = false;
             },
         });
     }
@@ -163,8 +168,12 @@
             <div class="card login-card animate-entry">
                 <div class="icon">✨</div>
                 <p class="subtitle">Connect to start sending stickers!</p>
-                <button on:click={handleLogin} class="btn btn-primary">
-                    Login / Authenticate
+                <button on:click={handleLogin} disabled={isLoading} class="btn btn-primary">
+                    {#if isLoading}
+                        <span class="spinner"></span> Logging in...
+                    {:else}
+                        Login / Authenticate
+                    {/if}
                 </button>
             </div>
         {/if}
@@ -509,5 +518,22 @@
     .animate-bounce {
         animation: bounce 1s infinite;
         font-size: 3.75rem;
+    }
+
+    /* Loading Spinner */
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    .spinner {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-right: 0.5rem;
     }
 </style>
